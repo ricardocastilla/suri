@@ -496,7 +496,7 @@ select{font-size:17px !important;min-height:50px;padding:0 14px}
 .switch>span{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .switch.on{background:var(--euca)}
 .switch.on>span{left:21px}
-.onb{min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+.onb{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg)}
 .onb-top{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 4px}
 .suri-mark-sm{font-family:Fraunces,serif;font-weight:900;font-size:18px;color:var(--euca-deep)}
 .onb-skip{border:none;background:none;font-family:Quicksand,sans-serif;font-weight:700;font-size:13px;color:#5E6B65;cursor:pointer}
@@ -507,7 +507,7 @@ select{font-size:17px !important;min-height:50px;padding:0 14px}
 .onb-kick{font-family:Quicksand,sans-serif;font-weight:700;font-size:12px;letter-spacing:1.4px;color:var(--euca-deep);margin-bottom:10px}
 .onb-title{font-family:Fraunces,serif;font-weight:900;font-size:25px;line-height:1.12;color:var(--ink);margin:0 0 12px}
 .onb-desc{font-family:Quicksand,sans-serif;font-weight:500;font-size:14.5px;line-height:1.6;color:#5E6B65;max-width:320px;margin:0}
-.onb-foot{padding:8px 30px 30px}
+.onb-foot{padding:8px 30px max(30px, calc(env(safe-area-inset-bottom) + 14px))}
 .onb-dots{display:flex;gap:7px;justify-content:center;margin:0 0 18px}
 .onb-dot{width:7px;height:7px;border-radius:4px;background:#D8CEBE;transition:width .2s,background .2s}
 .onb-dot.on{width:22px;background:var(--euca)}
@@ -2388,6 +2388,17 @@ function sheetHTML(){
     const a=state.sheet.allergen, f=FOOD[state.sheet.foodId];
     const aDisp = a==='Leche' ? 'lácteos' : a.toLowerCase();
     const page = state.sheet.page || 1;
+    const ALLERGEN_NOTES = {
+      'Leche':'💡 El calcio de los lácteos compite con la absorción del hierro: evita darle muchos lácteos en la misma comida que sus alimentos ricos en hierro; mejor sepáralos.',
+      'Huevo':'💡 Ofrécelo bien cocido (yema y clara). Es de los alérgenos más comunes, e introducirlo pronto y de forma regular ayuda a la tolerancia.',
+      'Cacahuate':'💡 Introducirlo temprano —en crema diluida, nunca entero ni en cucharada espesa— ayuda a prevenir la alergia. Si tu bebé tiene eccema severo o alergia al huevo, consúltalo antes con el pediatra.',
+      'Frutos secos':'💡 Solo molidos o en crema diluida, nunca enteros ni en trozos (riesgo de asfixia). Cada fruto seco es distinto: tolerar uno no garantiza los demás.',
+      'Trigo/gluten':'💡 Se introduce como cualquier otro alimento y las reacciones suelen ser leves. (La enfermedad celíaca es algo distinto de la alergia y se valora con el pediatra.)',
+      'Soya':'💡 La soya (tofu, edamame, leche de soya) es un alérgeno común, aunque las reacciones suelen ser leves.',
+      'Pescado':'💡 Es un alérgeno propio, distinto de los mariscos. Elige pescado bajo en mercurio (salmón, sardina, trucha) y revisa que no tenga espinas.',
+      'Mariscos':'💡 Son un alérgeno distinto del pescado: tolerar uno no implica el otro. Ofrécelos bien cocidos y picados finos.',
+      'Ajonjoli':'💡 El ajonjolí (tahini, hummus) es un alérgeno mayor reconocido; ofrécelo diluido, nunca en pasta espesa.'
+    };
     const p1 = `<div class="sheet-page ${page===1?'active':''}">
         <div class="fa-em">🔍</div>
         <p class="fa-tx"><b>${state.profile.name}</b> está probando <b>${aDisp}</b> por primera vez (en <b>${f.name.split('(')[0].trim().toLowerCase()}</b>).</p>
@@ -2396,7 +2407,7 @@ function sheetHTML(){
           <div class="fa-tip">👀 <b>Observa 2 horas</b> tras la primera prueba</div>
           <div class="fa-tip">🥄 Cantidad pequeña la primera vez</div>
         </div>
-        ${a==='Leche'?`<p class="faint" style="margin-top:12px;line-height:1.5">💡 El calcio de los lácteos compite con la absorción del hierro. Evita darle muchos lácteos en la misma comida que sus alimentos ricos en hierro; mejor sepáralos.</p>`:''}
+        ${ALLERGEN_NOTES[a]?`<p class="faint" style="margin-top:12px;line-height:1.5">${ALLERGEN_NOTES[a]}</p>`:''}
       </div>`;
     const p2 = `<div class="sheet-page ${page===2?'active':''}">
         <div class="fa-em">⚠️</div>
@@ -2751,9 +2762,11 @@ function bind(){
     if(el.dataset.othersub){ ev.stopPropagation(); const day=ensureDay(state.recoveryDate||todayStr()); subOther(day,el.dataset.othersub); render(); return; }
     if(el.dataset.other){ const day=ensureDay(state.recoveryDate||todayStr()); addOther(day,el.dataset.other); render(); return; }
 
-    if(el.dataset.feed){ state._draft=state._draft||{}; const prevFeed=state._draft.feeding; state._draft.feeding=el.dataset.feed; render();
-      if((el.dataset.feed==='Fórmula'||el.dataset.feed==='Mixta') && prevFeed!==el.dataset.feed){
+    if(el.dataset.feed){ state._draft=state._draft||{}; state._draft.feeding=el.dataset.feed; render();
+      if(el.dataset.feed==='Fórmula'||el.dataset.feed==='Mixta'){
         toast('💡 Registra cada toma de fórmula para sumar los nutrientes que aporta junto con los demás alimentos.', 4200); }
+      else if(el.dataset.feed==='Materna'){
+        toast('🤱 La leche materna es el mejor alimento del bebé: lo protege de infecciones, se adapta a sus necesidades y fortalece el vínculo. Suri no la suma a los nutrientes porque su composición varía y no se mide por toma; esas metas se cubren con los alimentos.', 7000); }
       return; }
     if(el.dataset.formplus){ state._draft=state._draft||{}; state._draft.formulaPerDay=Math.min(8,(state._draft.formulaPerDay||0)+1); render(); return; }
     if(el.dataset.formminus){ state._draft=state._draft||{}; state._draft.formulaPerDay=Math.max(0,(state._draft.formulaPerDay||0)-1); render(); return; }
